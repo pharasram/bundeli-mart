@@ -1,0 +1,34 @@
+name: Build BundeliMart Android
+on:
+  push:
+    paths: ["BundeliMart-Android-source.zip", ".github/workflows/android.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract app source
+        run: unzip -q BundeliMart-Android-source.zip
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+      - run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - run: node scripts/check-android.cjs
+      - run: gradle :app:assembleDebug :app:lintDebug :app:bundleRelease
+        working-directory: android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BundeliMart-test-APK
+          path: android/app/build/outputs/apk/debug/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BundeliMart-unsigned-bundle
+          path: android/app/build/outputs/bundle/release/*.aab
